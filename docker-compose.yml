@@ -1,0 +1,15 @@
+version: "3"
+services:
+  db:
+    image: "microsoft/mssql-server-linux:2017-latest"
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "123123AAaa"
+  api:
+    build: ./api
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+    ports:
+      - "5000:80"
+    depends_on:
+      - db

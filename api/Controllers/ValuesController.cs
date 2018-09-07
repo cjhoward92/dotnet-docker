@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
+using System.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 
 namespace api.Controllers
 {
@@ -10,36 +13,39 @@ namespace api.Controllers
     [ApiController]
     public class ValuesController : ControllerBase
     {
+        private readonly IConfiguration configuration;
+
+        public ValuesController(IConfiguration configuration)
+        {
+            this.configuration = configuration;
+        }
+
         // GET api/values
         [HttpGet]
-        public ActionResult<IEnumerable<string>> Get()
+        public ActionResult<IEnumerable<IDictionary<string, object>>> Get()
         {
-            return new string[] { "value1", "value2" };
-        }
+            var query = "SELECT Id, Name, Quantity FROM Inventory";
+            using (var cn = new SqlConnection(configuration.GetConnectionString("Default")))
+            {
+                cn.Open();
+                using (var a = new SqlDataAdapter(query, cn))
+                {
+                    var dt = new DataTable();
+                    a.Fill(dt);
 
-        // GET api/values/5
-        [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
-        {
-            return "value";
-        }
-
-        // POST api/values
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
-
-        // PUT api/values/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+                    var data = new List<Dictionary<string, object>>();
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        var rowDict = new Dictionary<string, object>();
+                        foreach (DataColumn col in dt.Columns)
+                        {
+                            rowDict.Add(col.ColumnName, row[col.ColumnName]);
+                        }
+                        data.Add(rowDict);
+                    }
+                    return data;
+                }
+            }
         }
     }
 }
